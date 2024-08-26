@@ -529,14 +529,8 @@ function typewriterEffect(element, html, speed = 50) {
 
     sortRoundEvents(); // Assurer le tri avant l'affichage
 
-    // Vider le contenu actuel avant de réafficher
-    liveEventsDiv.innerHTML = '';
-
-    // Inverser l'ordre des événements pour chaque round
-    const reversedRoundEvents = roundEvents.slice().reverse();
-
-    // Afficher les événements dans l'ordre inversé
-    reversedRoundEvents.forEach((event, index) => {
+    // Display sorted events
+    roundEvents.forEach((event, index) => {
         if (!event.rendered) {
             const eventText = document.createElement('p');
             const phrases = eventPhrases[event.eventType];
