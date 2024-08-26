@@ -529,8 +529,14 @@ function typewriterEffect(element, html, speed = 50) {
 
     sortRoundEvents(); // Assurer le tri avant l'affichage
 
-    // Display sorted events
-    roundEvents.forEach((event, index) => {
+    // Vider le contenu actuel avant de réafficher
+    liveEventsDiv.innerHTML = '';
+
+    // Inverser l'ordre des événements pour chaque round
+    const reversedRoundEvents = roundEvents.slice().reverse();
+
+    // Afficher les événements dans l'ordre inversé
+    reversedRoundEvents.forEach((event, index) => {
         if (!event.rendered) {
             const eventText = document.createElement('p');
             const phrases = eventPhrases[event.eventType];
@@ -548,7 +554,6 @@ function typewriterEffect(element, html, speed = 50) {
                 formattedText = phrase.replace("{pseudo}", `<span class="event-eliminated">${event.pseudo}</span>`);
             }
 
-                  // Ajouter l'événement à la fin de la liste
             liveEventsDiv.appendChild(eventText);
             typewriterEffect(eventText, formattedText); // Appel de la fonction avec du HTML
             event.rendered = true; // Marquer comme affiché
