@@ -548,8 +548,8 @@ function typewriterEffect(element, html, speed = 50) {
                 formattedText = phrase.replace("{pseudo}", `<span class="event-eliminated">${event.pseudo}</span>`);
             }
 
-             // Insérer le nouvel événement en haut de la liste
-            liveEventsDiv.insertBefore(eventText, liveEventsDiv.firstChild);
+                  // Ajouter l'événement à la fin de la liste
+            liveEventsDiv.appendChild(eventText);
             typewriterEffect(eventText, formattedText); // Appel de la fonction avec du HTML
             event.rendered = true; // Marquer comme affiché
             console.log('Event appended to liveEvents:', formattedText);
