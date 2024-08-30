@@ -864,16 +864,44 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const accounts = await web3.eth.getAccounts();
             const gameId = getGameId();
-
+            const accountAddress = accounts[0];
+    
+            // Appeler la fonction pour obtenir les informations du jeu
+            const gameInfo = await contract.methods.getGameInfo(gameId).call();
+    
+            // Vérifier si le jeu est privé
+            if (gameInfo.isPrivate) {
+                // Si le jeu est privé mais sans mot de passe, vérifier la whitelist
+                if (gameInfo.hasPassword === "NO") {
+                    const whitelist = await contract.methods.getWhitelist(gameId).call();
+                    if (!whitelist.includes(accountAddress)) {
+                        alert("You are not whitelisted for this game.");
+                        return; // Stopper la fonction si l'utilisateur n'est pas sur la whitelist
+                    }
+                } else if (gameInfo.hasPassword === "YES") {
+                    // Si le jeu est privé et nécessite un mot de passe, le demander
+                    const password = prompt("Enter the game password:");
+                    const isPasswordCorrect = await contract.methods.isPasswordCorrect(gameId, password).call();
+                    if (!isPasswordCorrect) {
+                        alert("Incorrect password.");
+                        return; // Stopper la fonction si le mot de passe est incorrect
+                    }
+                }
+            }
+    
+            // Demander le pseudo uniquement si les étapes précédentes sont validées
             const pseudo = prompt("Enter your pseudo:");
-            const password = prompt("Enter the game password (if required):");
-
+    
+            // Envoyer la transaction pour enregistrer le joueur
             await contract.methods.registerPlayer(gameId, pseudo, password).send({ from: accounts[0] });
             alert('Welcome fighter, you are registered');
         } catch (error) {
             alert('Error: ' + error.message);
         }
     });
+    
+    
+    
 
     document.getElementById('registerMultiplePlayers')?.addEventListener('click', async () => {
         try {
