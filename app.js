@@ -869,6 +869,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // Appeler la fonction pour obtenir les informations du jeu
             const gameInfo = await contract.methods.getGameInfo(gameId).call();
     
+            let password = '';
+    
             // Vérifier si le jeu est privé
             if (gameInfo.isPrivate) {
                 // Si le jeu est privé mais sans mot de passe, vérifier la whitelist
@@ -880,12 +882,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 } else if (gameInfo.hasPassword === "YES") {
                     // Si le jeu est privé et nécessite un mot de passe, le demander
-                    const password = prompt("Enter the game password:");
-                    const isPasswordCorrect = await contract.methods.isPasswordCorrect(gameId, password).call();
-                    if (!isPasswordCorrect) {
-                        alert("Incorrect password.");
-                        return; // Stopper la fonction si le mot de passe est incorrect
-                    }
+                    password = prompt("Enter the game password:");
+                    // Le mot de passe sera vérifié par le smart contract lors de l'enregistrement
                 }
             }
     
@@ -899,6 +897,7 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('Error: ' + error.message);
         }
     });
+    
     
     
     
