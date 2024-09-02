@@ -1223,6 +1223,32 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('Error: ' + error.message);
         }
     });
+    document.getElementById('getRegisteredAddresses')?.addEventListener('click', async () => {
+        try {
+            const gameId = getGameId();  // Assure-toi que getGameId() est bien défini et retourne l'ID du jeu
+            const registeredAddresses = await contract.methods.getRegisteredAddresses(gameId).call();
+    
+            const outputContainer = document.getElementById('outputContent');
+    
+            // Effacer le contenu précédent
+            outputContainer.innerHTML = '';
+    
+            if (registeredAddresses.length === 0) {
+                outputContainer.innerHTML = "<p>No registered addresses found.</p>";
+            } else {
+                let addressesList = "<h4>Registered Addresses:</h4><ul>";
+                registeredAddresses.forEach(address => {
+                    addressesList += `<li>${address}</li>`;
+                });
+                addressesList += "</ul>";
+                outputContainer.innerHTML = addressesList;
+            }
+        } catch (error) {
+            console.error("Error retrieving registered addresses:", error);
+            document.getElementById('outputContent').innerHTML = '<p>Failed to retrieve registered addresses.</p>';
+        }
+    });
+    
     
     document.getElementById('games')?.addEventListener('click', async () => {
         try {
