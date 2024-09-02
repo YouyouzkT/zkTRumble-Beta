@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const gameIdInput = document.getElementById('gameIdInput');
     const filterButton = document.getElementById('filterButton');
     const startRoundButton = document.getElementById('startRoundButton');
-    const contractAddress = "0x0bDdc8fc54Aa27f534751966E3b5f3b02a1d6382";
+    const contractAddress = "0xc93C30bB2863F0257f789A950BBd4ce9655C6367";
     const contractABI = [
         {
             "inputs": [
@@ -394,6 +394,25 @@ document.addEventListener('DOMContentLoaded', () => {
                     "internalType": "string",
                     "name": "hasWhitelist",
                     "type": "string"
+                }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
+            "inputs": [
+                {
+                    "internalType": "uint256",
+                    "name": "gameId",
+                    "type": "uint256"
+                }
+            ],
+            "name": "getRegisteredAddresses",
+            "outputs": [
+                {
+                    "internalType": "address[]",
+                    "name": "",
+                    "type": "address[]"
                 }
             ],
             "stateMutability": "view",
@@ -873,7 +892,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
             // Vérifier si le jeu est privé
             if (gameInfo.isPrivate) {
-                // Si le jeu est privé mais sans mot de passe, vérifier la whitelist
                 if (gameInfo.hasPassword === "NO") {
                     const whitelist = await contract.methods.getWhitelist(gameId).call();
                     if (!whitelist.includes(accountAddress)) {
@@ -881,20 +899,42 @@ document.addEventListener('DOMContentLoaded', () => {
                         return; // Stopper la fonction si l'utilisateur n'est pas sur la whitelist
                     }
                 } else if (gameInfo.hasPassword === "YES") {
-                    // Si le jeu est privé et nécessite un mot de passe, le demander
                     password = prompt("Enter the game password:");
-                    // Le mot de passe sera vérifié par le smart contract lors de l'enregistrement
                 }
+            }
+    
+            // Vérifier si l'adresse est déjà enregistrée
+            const registeredAddresses = await contract.methods.getRegisteredAddresses(gameId).call();
+            if (registeredAddresses.includes(accountAddress)) {
+                alert("A fighter is already registered with this address.");
+                return; // Stopper la fonction si l'adresse est déjà enregistrée
             }
     
             // Demander le pseudo uniquement si les étapes précédentes sont validées
             const pseudo = prompt("Enter your pseudo:");
     
+            // Vérifier si le pseudo est déjà pris
+            const registeredPlayers = await contract.methods.getRegisteredPlayers(gameId).call();
+            if (registeredPlayers.includes(pseudo)) {
+                alert(`Le pseudo "${pseudo}" est déjà pris. Veuillez choisir un autre pseudo.`);
+                return; // Stopper la fonction si le pseudo est déjà pris
+            }
+    
             // Envoyer la transaction pour enregistrer le joueur
             await contract.methods.registerPlayer(gameId, pseudo, password).send({ from: accounts[0] });
             alert('Welcome fighter, you are registered');
         } catch (error) {
-            alert('Error: ' + error.message);
+            // Gestion des erreurs spécifiques
+            if (error.message.includes("Incorrect password")) {
+                alert("Wrong password, try again!");
+            } else if (error.message.includes("Address already registered")) {
+                alert("A fighter already registered with this address.");
+            } else if (error.message.includes("Pseudo already taken")) {
+                alert("Pseudo already taken");
+            } else {
+                alert('Une erreur est survenue lors de l\'enregistrement. Veuillez réessayer.');
+            }
+            console.error("Error during registration:", error);
         }
     });
     
@@ -907,25 +947,41 @@ document.addEventListener('DOMContentLoaded', () => {
             const accounts = await web3.eth.getAccounts();
             const gameId = getGameId();
             const gameInfo = await contract.methods.games(gameId).call();
-
+    
             // Vérifier si la GameID existe
             if (gameInfo.owner === '0x0000000000000000000000000000000000000000') {
                 alert("Erreur : This GameID doesn't exist.");
                 return;
             }
+    
             // Vérifier si l'utilisateur est le propriétaire de la GameID
             if (gameInfo.owner !== accounts[0]) {
                 alert("You are not the owner of the GameID");
                 return;
             }
+    
             // Vérifier si la game est déjà fermée
             if (!gameInfo.isRegistrationOpen) {
                 alert("Erreur : Game is already active.");
                 return;
             }
-
+    
             const pseudos = prompt("Enter player pseudos (comma separated, e.g., pseudo1, pseudo2, pseudo3):");
             if (pseudos) {
+                const pseudosArray = pseudos.split(',').map(pseudo => pseudo.trim());
+    
+                // Appeler la fonction pour obtenir les pseudos déjà enregistrés
+                const registeredPlayers = await contract.methods.getRegisteredPlayers(gameId).call();
+    
+                // Vérifier l'unicité des pseudos en frontend
+                for (let pseudo of pseudosArray) {
+                    if (registeredPlayers.includes(pseudo)) {
+                        alert(`Le pseudo "${pseudo}" est déjà pris. Veuillez choisir un autre pseudo.`);
+                        return; // Arrêter si un pseudo est déjà pris
+                    }
+                }
+    
+                // Si tous les pseudos sont uniques, envoyer la transaction
                 await contract.methods.registerMultiplePlayers(gameId, pseudos).send({ from: accounts[0] });
                 alert('Multiple players registered');
             } else {
@@ -933,8 +989,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (error) {
             alert('Error: ' + error.message);
+            console.error("Error during registration:", error);
         }
     });
+    
+    
 
     document.getElementById('addToWhitelist')?.addEventListener('click', async () => {
         try {
