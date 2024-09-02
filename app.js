@@ -932,7 +932,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (error.message.includes("Pseudo already taken")) {
                 alert("Pseudo already taken");
             } else {
-                alert('Une erreur est survenue lors de l\'enregistrement. Veuillez réessayer.');
+                alert('Wrong Password');
             }
             console.error("Error during registration:", error);
         }
