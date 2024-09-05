@@ -885,58 +885,65 @@ document.addEventListener('DOMContentLoaded', () => {
             const gameId = getGameId();
             const accountAddress = accounts[0];
     
-            // Appeler la fonction pour obtenir les informations du jeu
+            // Call the contract to get game info
             const gameInfo = await contract.methods.getGameInfo(gameId).call();
+    
+            // Check if registration is open
+            if (!gameInfo.isRegistrationOpen) {
+                alert("Registration is already closed for this game.");
+                return; // Stop if registration is closed
+            }
     
             let password = '';
     
-            // Vérifier si le jeu est privé
+            // Check if the game is private
             if (gameInfo.isPrivate) {
                 if (gameInfo.hasPassword === "NO") {
                     const whitelist = await contract.methods.getWhitelist(gameId).call();
                     if (!whitelist.includes(accountAddress)) {
                         alert("You are not whitelisted for this game.");
-                        return; // Stopper la fonction si l'utilisateur n'est pas sur la whitelist
+                        return; // Stop if the user is not on the whitelist
                     }
                 } else if (gameInfo.hasPassword === "YES") {
                     password = prompt("Enter the game password:");
                 }
             }
     
-            // Vérifier si l'adresse est déjà enregistrée
+            // Check if the address is already registered
             const registeredAddresses = await contract.methods.getRegisteredAddresses(gameId).call();
             if (registeredAddresses.includes(accountAddress)) {
                 alert("A fighter is already registered with this address.");
-                return; // Stopper la fonction si l'adresse est déjà enregistrée
+                return; // Stop if the address is already registered
             }
     
-            // Demander le pseudo uniquement si les étapes précédentes sont validées
+            // Ask for the pseudo only if the above steps pass
             const pseudo = prompt("Enter your pseudo:");
     
-            // Vérifier si le pseudo est déjà pris
+            // Check if the pseudo is already taken
             const registeredPlayers = await contract.methods.getRegisteredPlayers(gameId).call();
             if (registeredPlayers.includes(pseudo)) {
-                alert(`Le pseudo "${pseudo}" est déjà pris. Veuillez choisir un autre pseudo.`);
-                return; // Stopper la fonction si le pseudo est déjà pris
+                alert(`The pseudo "${pseudo}" is already taken. Please choose another.`);
+                return; // Stop if the pseudo is already taken
             }
     
-            // Envoyer la transaction pour enregistrer le joueur
+            // Send the transaction to register the player
             await contract.methods.registerPlayer(gameId, pseudo, password).send({ from: accounts[0] });
             alert('Welcome fighter, you are registered');
         } catch (error) {
-            // Gestion des erreurs spécifiques
+            // Handle specific errors
             if (error.message.includes("Incorrect password")) {
                 alert("Wrong password, try again!");
             } else if (error.message.includes("Address already registered")) {
-                alert("A fighter already registered with this address.");
+                alert("A fighter is already registered with this address.");
             } else if (error.message.includes("Pseudo already taken")) {
                 alert("Pseudo already taken");
             } else {
-                alert('Wrong Password');
+                alert('An error occurred during registration. Please try again.');
             }
             console.error("Error during registration:", error);
         }
     });
+    
     
     
     
