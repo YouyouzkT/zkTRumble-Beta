@@ -7,6 +7,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const connectMetaMaskButton = document.getElementById('connectMetaMask');
     const connectWalletConnectButton = document.getElementById('connectWalletConnect');
     const disconnectMetaMaskButton = document.getElementById('disconnectMetaMask');
+    const walletAddressContainer = document.getElementById('walletAddressContainer');
+    const connectedWalletElement = document.getElementById('connectedWallet');
     const statusDiv = document.getElementById('status');
     const outputContent = document.getElementById('outputContent');
     const gameIdInput = document.getElementById('gameIdInput');
@@ -620,7 +622,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function typewriterEffect(element, html, speed = 50) {
+    function typewriterEffect(element, html, speed = 70) {
         let i = 0;
         function type() {
             if (i < html.length) {
@@ -787,7 +789,7 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error('filterButton not found in the DOM.');
     }
 
-    //Metamask connection part
+    //Metamask connection
     async function connectMetaMask() {
         if (typeof window.ethereum !== 'undefined') {
             try {
@@ -795,21 +797,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                 connectedAccount = accounts[0];
                 localStorage.setItem('connectedAccount', connectedAccount);
-                statusDiv.innerHTML = `<p style="color: green;">Connected to MetaMask: ${connectedAccount}</p>`;
+                connectedWalletElement.textContent = truncateAddress(connectedAccount);
                 toggleButtons(true);
-                initializeContract();
             } catch (error) {
-                statusDiv.innerHTML = `<p style="color: red;">Error connecting to MetaMask: ${error.message}</p>`;
+                console.error("Error connecting to MetaMask:", error);
             }
         } else {
-            statusDiv.innerHTML = `<p style="color: red;">MetaMask is not installed.</p>`;
+            alert('MetaMask is not installed. Please install it to continue.');
         }
     }
 
     function disconnectMetaMask() {
         localStorage.removeItem('connectedAccount');
         connectedAccount = null;
-        statusDiv.innerHTML = `<p style="color: red;">Disconnected from MetaMask</p>`;
+        connectedWalletElement.textContent = '';
         toggleButtons(false);
     }
 
@@ -821,15 +822,28 @@ document.addEventListener('DOMContentLoaded', () => {
         disconnectMetaMaskButton.addEventListener('click', disconnectMetaMask);
     }
 
-function toggleButtons(isConnected) {
-    if (isConnected) {
-        connectMetaMaskButton.style.display = 'none';
-        disconnectMetaMaskButton.style.display = 'block';
-    } else {
-        connectMetaMaskButton.style.display = 'block';
-        disconnectMetaMaskButton.style.display = 'none';
+    function truncateAddress(address) {
+        if (!address || address === 'null' || address === 'undefined') {
+            return 'disconnected';
+        }
+        return `${address.slice(0, 6)}...${address.slice(-4)}`;
     }
-}
+    
+
+    function toggleButtons(isConnected) {
+        if (isConnected) {
+            connectMetaMaskButton.style.display = 'none';
+            disconnectMetaMaskButton.style.display = 'block';
+            connectedWalletElement.textContent = truncateAddress(connectedAccount);
+        } else {
+            connectMetaMaskButton.style.display = 'block';
+            disconnectMetaMaskButton.style.display = 'none';
+            connectedWalletElement.textContent = 'disconnected';
+        }
+        // Assure que la boîte est toujours visible
+        walletAddressContainer.style.display = 'block';
+    }
+    
     async function connectWalletConnect() {
         const provider = new WalletConnectProvider.default({
             infuraId: "YOUR_INFURA_ID"
@@ -865,8 +879,7 @@ function toggleButtons(isConnected) {
         connectedAccount = localStorage.getItem('connectedAccount');
         if (connectedAccount) {
             web3 = new Web3(window.ethereum || provider);
-            statusDiv.innerHTML = `<p style="color: green;">Connected: ${connectedAccount}</p>`;
-            initializeContract();
+            connectedWalletElement.textContent = truncateAddress(connectedAccount);
             toggleButtons(true);
         } else {
             toggleButtons(false);
