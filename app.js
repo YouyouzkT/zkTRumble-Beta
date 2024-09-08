@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const connectMetaMaskButton = document.getElementById('connectMetaMask');
     const connectWalletConnectButton = document.getElementById('connectWalletConnect');
+    const disconnectMetaMaskButton = document.getElementById('disconnectMetaMask');
     const statusDiv = document.getElementById('status');
     const outputContent = document.getElementById('outputContent');
     const gameIdInput = document.getElementById('gameIdInput');
@@ -786,22 +787,49 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error('filterButton not found in the DOM.');
     }
 
+    //Metamask connection part
     async function connectMetaMask() {
         if (typeof window.ethereum !== 'undefined') {
             try {
                 web3 = new Web3(window.ethereum);
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                 connectedAccount = accounts[0];
+                localStorage.setItem('connectedAccount', connectedAccount);
                 statusDiv.innerHTML = `<p style="color: green;">Connected to MetaMask: ${connectedAccount}</p>`;
+                toggleButtons(true);
                 initializeContract();
             } catch (error) {
                 statusDiv.innerHTML = `<p style="color: red;">Error connecting to MetaMask: ${error.message}</p>`;
             }
         } else {
-            statusDiv.innerHTML = `<p style="color: red;">MetaMask is not installed. Please install it to continue.</p>`;
+            statusDiv.innerHTML = `<p style="color: red;">MetaMask is not installed.</p>`;
         }
     }
 
+    function disconnectMetaMask() {
+        localStorage.removeItem('connectedAccount');
+        connectedAccount = null;
+        statusDiv.innerHTML = `<p style="color: red;">Disconnected from MetaMask</p>`;
+        toggleButtons(false);
+    }
+
+    if (connectMetaMaskButton) {
+        connectMetaMaskButton.addEventListener('click', connectMetaMask);
+    }
+
+    if (disconnectMetaMaskButton) {
+        disconnectMetaMaskButton.addEventListener('click', disconnectMetaMask);
+    }
+
+function toggleButtons(isConnected) {
+    if (isConnected) {
+        connectMetaMaskButton.style.display = 'none';
+        disconnectMetaMaskButton.style.display = 'block';
+    } else {
+        connectMetaMaskButton.style.display = 'block';
+        disconnectMetaMaskButton.style.display = 'none';
+    }
+}
     async function connectWalletConnect() {
         const provider = new WalletConnectProvider.default({
             infuraId: "YOUR_INFURA_ID"
@@ -839,6 +867,9 @@ document.addEventListener('DOMContentLoaded', () => {
             web3 = new Web3(window.ethereum || provider);
             statusDiv.innerHTML = `<p style="color: green;">Connected: ${connectedAccount}</p>`;
             initializeContract();
+            toggleButtons(true);
+        } else {
+            toggleButtons(false);
         }
     });
 
