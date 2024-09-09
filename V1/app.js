@@ -6,6 +6,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const connectMetaMaskButton = document.getElementById('connectMetaMask');
     const connectWalletConnectButton = document.getElementById('connectWalletConnect');
+    const disconnectMetaMaskButton = document.getElementById('disconnectMetaMask');
+    const walletAddressContainer = document.getElementById('walletAddressContainer');
+    const connectedWalletElement = document.getElementById('connectedWallet');
     const statusDiv = document.getElementById('status');
     const outputContent = document.getElementById('outputContent');
     const gameIdInput = document.getElementById('gameIdInput');
@@ -611,6 +614,26 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function getPseudoRandomPhrase(pseudo, eventType) {
+        const phrases = eventPhrases[eventType];
+        
+        // Utilise un hash du pseudo pour générer un index pseudo-aléatoire
+        const hashValue = hashString(pseudo);
+        const randomIndex = hashValue % phrases.length; // Calcule l'index en fonction du hash
+    
+        return phrases[randomIndex];
+    }
+    
+    function hashString(str) {
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            const char = str.charCodeAt(i);
+            hash = (hash << 5) - hash + char;
+            hash = hash & hash; // Convertir en entier 32-bit
+        }
+        return Math.abs(hash); // Renvoie une valeur positive
+    }
+    
     function sortRoundEvents() {
         roundEvents.sort((a, b) => {
             if (a.eventType === 'WinnerDeclared') return 1;
@@ -619,7 +642,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function typewriterEffect(element, html, speed = 50) {
+    function typewriterEffect(element, html, speed = 70) {
         let i = 0;
         function type() {
             if (i < html.length) {
@@ -786,22 +809,61 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error('filterButton not found in the DOM.');
     }
 
+    //Metamask connection
     async function connectMetaMask() {
         if (typeof window.ethereum !== 'undefined') {
             try {
                 web3 = new Web3(window.ethereum);
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                 connectedAccount = accounts[0];
-                statusDiv.innerHTML = `<p style="color: green;">Connected to MetaMask: ${connectedAccount}</p>`;
-                initializeContract();
+                localStorage.setItem('connectedAccount', connectedAccount);
+                connectedWalletElement.textContent = truncateAddress(connectedAccount);
+                toggleButtons(true);
             } catch (error) {
-                statusDiv.innerHTML = `<p style="color: red;">Error connecting to MetaMask: ${error.message}</p>`;
+                console.error("Error connecting to MetaMask:", error);
             }
         } else {
-            statusDiv.innerHTML = `<p style="color: red;">MetaMask is not installed. Please install it to continue.</p>`;
+            alert('MetaMask is not installed. Please install it to continue.');
         }
     }
 
+    function disconnectMetaMask() {
+        localStorage.removeItem('connectedAccount');
+        connectedAccount = null;
+        connectedWalletElement.textContent = '';
+        toggleButtons(false);
+    }
+
+    if (connectMetaMaskButton) {
+        connectMetaMaskButton.addEventListener('click', connectMetaMask);
+    }
+
+    if (disconnectMetaMaskButton) {
+        disconnectMetaMaskButton.addEventListener('click', disconnectMetaMask);
+    }
+
+    function truncateAddress(address) {
+        if (!address || address === 'null' || address === 'undefined') {
+            return 'disconnected';
+        }
+        return `${address.slice(0, 6)}...${address.slice(-4)}`;
+    }
+    
+
+    function toggleButtons(isConnected) {
+        if (isConnected) {
+            connectMetaMaskButton.style.display = 'none';
+            disconnectMetaMaskButton.style.display = 'block';
+            connectedWalletElement.textContent = truncateAddress(connectedAccount);
+        } else {
+            connectMetaMaskButton.style.display = 'block';
+            disconnectMetaMaskButton.style.display = 'none';
+            connectedWalletElement.textContent = 'disconnected';
+        }
+        // Assure que la boîte est toujours visible
+        walletAddressContainer.style.display = 'block';
+    }
+    
     async function connectWalletConnect() {
         const provider = new WalletConnectProvider.default({
             infuraId: "YOUR_INFURA_ID"
@@ -835,12 +897,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.addEventListener('load', () => {
         connectedAccount = localStorage.getItem('connectedAccount');
-        if (connectedAccount) {
-            web3 = new Web3(window.ethereum || provider);
-            statusDiv.innerHTML = `<p style="color: green;">Connected: ${connectedAccount}</p>`;
-            initializeContract();
+        
+        if (connectedAccount && connectedAccount !== 'null' && connectedAccount !== 'undefined') {
+            web3 = new Web3(window.ethereum || provider); // Réinitialise web3
+            contract = new web3.eth.Contract(contractABI, contractAddress); // Réinitialise contract
+            connectedWalletElement.textContent = truncateAddress(connectedAccount);
+            walletAddressContainer.style.display = 'block'; // Affiche la boîte avec l'adresse du wallet
+            console.log('Wallet connected:', connectedAccount);
+        } else {
+            connectedWalletElement.textContent = 'Wallet disconnected';
+            walletAddressContainer.style.display = 'block'; // Affiche la boîte même si le wallet est déconnecté
         }
-    });
+    });    
 
     document.getElementById('connectMetaMask')?.addEventListener('click', connectMetaMask);
     document.getElementById('connectWalletConnect')?.addEventListener('click', connectWalletConnect);
